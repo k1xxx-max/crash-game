@@ -6,25 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-align: center;
             padding: 20px;
-            margin: 0;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
         }
+        
         .container {
             max-width: 400px;
+            width: 100%;
             background: rgba(0, 0, 0, 0.8);
             padding: 30px;
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        
         .multiplier {
             font-size: 52px;
             font-weight: bold;
@@ -33,19 +47,22 @@
             text-shadow: 0 0 20px #00ff00;
             transition: all 0.3s;
         }
+        
         .bet-form {
             margin: 25px 0;
         }
+        
         input {
             padding: 16px;
             margin: 12px 0;
             border: none;
             border-radius: 12px;
             font-size: 18px;
-            width: 90%;
+            width: 100%;
             background: rgba(255,255,255,0.95);
             text-align: center;
         }
+        
         button {
             padding: 18px;
             margin: 12px 0;
@@ -53,31 +70,37 @@
             border-radius: 12px;
             font-size: 18px;
             font-weight: bold;
-            width: 90%;
+            width: 100%;
             cursor: pointer;
             transition: transform 0.2s;
         }
+        
         button:active {
             transform: scale(0.95);
         }
+        
         #betButton {
             background: #ff6b6b;
             color: white;
         }
+        
         #cashoutBtn {
             background: #4CAF50;
             color: white;
         }
+        
         button:disabled {
             background: #666;
             cursor: not-allowed;
         }
+        
         #status {
             margin: 20px 0;
             font-size: 20px;
             min-height: 30px;
             font-weight: bold;
         }
+        
         .history {
             margin-top: 20px;
             font-size: 14px;
@@ -102,17 +125,27 @@
     </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
+        // Инициализация переменных
         let multiplier = 1.0;
         let crashed = false;
         let betPlaced = false;
         let crashPoint = 0;
         let gameInterval;
         
-        // Инициализация
-        tg.expand();
-        tg.enableClosingConfirmation();
-        startNewRound();
+        // Запуск игры
+        function initGame() {
+            try {
+                // Пытаемся инициализировать Telegram WebApp
+                if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+                    Telegram.WebApp.expand();
+                    Telegram.WebApp.enableClosingConfirmation();
+                }
+            } catch (e) {
+                console.log('Telegram WebApp not available');
+            }
+            
+            startNewRound();
+        }
         
         // Новый раунд
         function startNewRound() {
@@ -120,19 +153,25 @@
             crashed = false;
             betPlaced = false;
             crashPoint = (Math.random() * 4 + 1.5).toFixed(2);
+            
             document.getElementById('multiplier').innerText = '1.00x';
             document.getElementById('multiplier').style.color = '#00ff00';
             document.getElementById('status').innerText = '🚀 ДЕЛАЙ СТАВКУ! МНОЖИТЕЛЬ РАСТЁТ...';
             document.getElementById('cashoutBtn').disabled = true;
             document.getElementById('betButton').disabled = false;
             
-            clearInterval(gameInterval);
+            // Очищаем предыдущий интервал
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+            
+            // Запускаем новый игровой цикл
             gameInterval = setInterval(updateGame, 100);
         }
         
         // Обновление игры
         function updateGame() {
-            if (!crashed) {
+            if (!crashed && betPlaced) {
                 multiplier += 0.01;
                 document.getElementById('multiplier').innerText = multiplier.toFixed(2) + 'x';
                 
@@ -146,6 +185,8 @@
                     crashed = true;
                     document.getElementById('multiplier').style.color = '#ff0000';
                     document.getElementById('status').innerText = '💥 КРАШ! ИГРА ЗАВЕРШИЛАСЬ НА ' + multiplier.toFixed(2) + 'x';
+                    document.getElementById('cashoutBtn').disabled = true;
+                    
                     setTimeout(startNewRound, 3000);
                 }
             }
@@ -175,6 +216,9 @@
             
             // Добавляем в историю
             addToHistory(winAmount, multiplier.toFixed(2));
+            
+            // Через 2 секунды новый раунд
+            setTimeout(startNewRound, 2000);
         }
         
         // История игр
@@ -184,7 +228,15 @@
             historyItem.textContent = `🎯 Выигрыш: ${amount} ₽ (x${multiplier})`;
             historyItem.style.margin = '5px 0';
             historyDiv.appendChild(historyItem);
+            
+            // Ограничиваем историю 5 записями
+            if (historyDiv.children.length > 5) {
+                historyDiv.removeChild(historyDiv.children[0]);
+            }
         }
+        
+        // Запускаем игру при загрузке страницы
+        window.onload = initGame;
     </script>
 </body>
 </html>
